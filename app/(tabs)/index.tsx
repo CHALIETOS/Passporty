@@ -1,98 +1,128 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+// Importamos el JSON
+import rawData from './countries.json';
 
-export default function HomeScreen() {
+interface Country {
+  name: string;
+  region: string;
+  "alpha-2": string;
+  [key: string]: any; 
+}
+
+// Conversión segura de datos
+const countriesData = rawData as unknown as Country[];
+
+export default function App() {
+  const [busqueda, setBusqueda] = useState('');
+  const [paisesFiltrados, setPaisesFiltrados] = useState<Country[]>(countriesData);
+
+  const buscarPais = (texto: string) => {
+    setBusqueda(texto);
+    if (texto) {
+      const nuevosDatos = countriesData.filter((item) => {
+        // Protección: Si el nombre es null, usamos cadena vacía
+        const nombre = item.name ? item.name : ''; 
+        return nombre.toUpperCase().includes(texto.toUpperCase());
+      });
+      setPaisesFiltrados(nuevosDatos);
+    } else {
+      setPaisesFiltrados(countriesData);
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <SafeAreaView style={styles.contenedor}>
+      <View style={styles.contenido}>
+        <Text style={styles.titulo}>Passporty 🌍</Text>
+        
+        <TextInput
+          style={styles.inputBusqueda}
+          value={busqueda}
+          placeholder="Buscar país..."
+          placeholderTextColor="#999"
+          onChangeText={buscarPais}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <FlatList
+          data={paisesFiltrados}
+          // Protección: Si no hay alpha-2, usamos index como clave (evita crash)
+          keyExtractor={(item, index) => item['alpha-2'] || index.toString()} 
+          renderItem={({ item }) => (
+            <View style={styles.itemPais}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.textoPais}>{item.name}</Text>
+                {/* Protección: Si la región es null, mostramos 'Desconocido' */}
+                <Text style={styles.subtituloPais}>{item.region || 'Desconocido'}</Text>
+              </View>
+              <Text style={styles.codigoPais}>{item['alpha-2']}</Text>
+            </View>
+          )}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  contenedor: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingTop: StatusBar.currentHeight || 40,
+  },
+  contenido: {
+    paddingHorizontal: 20,
+    flex: 1,
+  },
+  titulo: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  inputBusqueda: {
+    height: 50,
+    borderWidth: 1,
+    paddingLeft: 20,
+    borderColor: '#009688',
+    borderRadius: 25,
+    backgroundColor: 'white',
+    marginBottom: 20,
+  },
+  itemPais: {
+    backgroundColor: 'white',
+    padding: 20,
+    marginVertical: 8,
+    borderRadius: 10,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    elevation: 3,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  textoPais: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    flexWrap: 'wrap', // Evita que nombres largos rompan el diseño
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  subtituloPais: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  codigoPais: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#009688',
+    backgroundColor: '#e0f2f1',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginLeft: 10,
   },
 });
